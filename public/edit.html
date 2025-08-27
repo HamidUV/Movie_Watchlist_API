@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Edit Movie</title>
+</head>
+<body>
+  <h2>Edit Movie</h2>
+  <form id="editForm">
+    <input type="text" id="title" placeholder="Movie Title" required />
+    <input type="text" id="language" placeholder="Language" required />
+    <label>
+      <input type="checkbox" id="watched" /> Watched
+    </label>
+    <button type="submit">Update</button>
+  </form>
+
+  <p id="msg"></p>
+  <button onclick="back()">Back</button>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const movieId = localStorage.getItem('editMovieId');
+    if (!token || !movieId) window.location.href = 'movies.html';
+
+    async function loadMovie() {
+      const res = await fetch('http://localhost:3000/movies/' + movieId, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const movie = await res.json();
+      if (res.ok) {
+        document.getElementById('title').value = movie.movietitle;
+        document.getElementById('language').value = movie.language;
+        document.getElementById('watched').checked = movie.watched;
+      } else {
+        document.getElementById('msg').textContent = movie.message || 'Error';
+      }
+    }
+
+    document.getElementById('editForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const movietitle = document.getElementById('title').value;
+      const language = document.getElementById('language').value;
+      const watched = document.getElementById('watched').checked;
+
+      const res = await fetch('http://localhost:3000/movies/' + movieId, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ movietitle, language, watched })
+      });
+      if (res.ok) {
+        document.getElementById('msg').textContent = 'Updated successfully!';
+      } else {
+        const err = await res.json();
+        document.getElementById('msg').textContent = err.message || 'Update failed';
+      }
+    });
+
+    function back() {
+      window.location.href = 'movies.html';
+    }
+
+    loadMovie();
+  </script>
+</body>
+</html>

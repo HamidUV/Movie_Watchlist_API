@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>My Movies - Watchlist</title>
+</head>
+<body>
+  <h2>Movie Watchlist</h2>
+  <button onclick="logout()">Logout</button>
+
+  <h3>Add a new movie</h3>
+  <form id="addMovieForm">
+    <input type="text" id="title" placeholder="Movie Title" required />
+    <input type="text" id="language" placeholder="Language" required />
+    <button type="submit">Add Movie</button>
+  </form>
+
+  <h3>Filter</h3>
+  <button onclick="loadMovies()">All</button>
+  <button onclick="loadMovies('watched')">Watched</button>
+  <button onclick="loadMovies('unwatched')">Unwatched</button>
+
+  <h3>My Movies</h3>
+  <ul id="movieList"></ul>
+
+  <script>
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = 'login.html';
+    }
+
+    async function loadMovies(status = '') {
+      let url = 'http://localhost:3000/movies';
+      if (status) url += '?status=' + status;
+
+      const res = await fetch(url, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+
+      const list = document.getElementById('movieList');
+      list.innerHTML = '';
+
+      data.forEach(movie => {
+        const li = document.createElement('li');
+        li.textContent = `${movie.movietitle} (${movie.language}) - ${movie.watched ? 'Watched' : 'Unwatched'}`;
+        
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Edit';
+        editBtn.onclick = () => {
+          localStorage.setItem('editMovieId', movie.id);
+          window.location.href = 'edit.html';
+        };
+
+        const delBtn = document.createElement('button');
+        delBtn.textContent = 'Delete';
+        delBtn.onclick = async () => {
+          await fetch('http://localhost:3000/movies/' + movie.id, {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + token }
+          });
+          loadMovies(status);
+        };
+
+        li.appendChild(editBtn);
+        li.appendChild(delBtn);
+        list.appendChild(li);
+      });
+    }
+
+    // Add movie form
+    document.getElementById('addMovieForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const movietitle = document.getElementById('title').value;
+      const language = document.getElementById('language').value;
+
+      await fetch('http://localhost:3000/movies', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ movietitle, language })
+      });
+
+      document.getElementById('title').value = '';
+      document.getElementById('language').value = '';
+      loadMovies();
+    });
+
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = 'login.html';
+    }
+
+    loadMovies();
+  </script>
+</body>
+</html>
